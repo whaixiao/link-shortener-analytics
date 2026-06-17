@@ -3,7 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from datetime import datetime
 import secrets
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 import httpx
 
 app = FastAPI()
@@ -77,3 +77,9 @@ async def redirect_to_original(codigo: str, request: Request):
     
     # Realizar la redirección HTTP
     return RedirectResponse(url=url_document["url_original"])
+
+@app.get("/analytics")
+async def get_analytics():
+    # Obtener todos los enlaces guardados en la base de datos
+    urls = await urls_collection.find().to_list(None)
+    return JSONResponse(content=urls)

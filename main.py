@@ -48,7 +48,7 @@ async def shorten_url(url_data: URL):
     return {"codigo_corto": codigo_corto}
 
 @app.get("/{codigo}")
-async def redirect_to_original(codigo: str):
+async def redirect_to_original(codigo: str, request: Request):
     # Buscar el código en MongoDB
     url_document = await urls_collection.find_one({"codigo_corto": codigo})
     

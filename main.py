@@ -20,6 +20,7 @@ class URL(BaseModel):
     codigo_corto: str
     fecha_creacion: datetime
     clics: int = 0
+    paises: list = []
 
 @app.get("/")
 def read_root():
@@ -35,7 +36,8 @@ async def shorten_url(url_data: URL):
         "url_original": url_data.url_original,
         "codigo_corto": codigo_corto,
         "fecha_creacion": datetime.utcnow(),
-        "clics": 0
+        "clics": 0,
+        "paises": []
     }
 
     # Insertar el nuevo documento en la colección
@@ -68,9 +70,9 @@ async def redirect_to_original(codigo: str):
         if response.status_code == 200:
             data = response.json()
             country = data.get("country")
-            if country:
+            if country and country not in url_document["paises"]:
                 # Guardar el país en el documento de MongoDB
-                url_document["pais"] = country
+                url_document["paises"].append(country)
                 await urls_collection.update_one({"codigo_corto": codigo}, {"$set": url_document})
     
     # Realizar la redirección HTTP

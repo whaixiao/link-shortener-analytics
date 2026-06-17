@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from datetime import datetime
@@ -44,23 +44,6 @@ async def shorten_url(url_data: URL):
         raise HTTPException(status_code=500, detail="Error al guardar la URL")
 
     return {"codigo_corto": codigo_corto}
-
-@app.get("/{codigo}")
-async def redirect_to_original(codigo: str):
-    # Buscar el código en MongoDB
-    url_document = await urls_collection.find_one({"codigo_corto": codigo})
-    
-    if not url_document:
-        raise HTTPException(status_code=404, detail="URL no encontrada")
-    
-    # Incrementar el contador de clics
-    url_document["clics"] += 1
-    
-    # Actualizar el documento en MongoDB
-    await urls_collection.update_one({"codigo_corto": codigo}, {"$set": url_document})
-    
-    # Realizar la redirección HTTP
-    return RedirectResponse(url=url_document["url_original"])
 
 @app.get("/{codigo}")
 async def redirect_to_original(codigo: str):

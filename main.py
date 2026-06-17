@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import secrets
 from fastapi.responses import RedirectResponse
+import httpx
 
 app = FastAPI()
 
@@ -57,6 +58,37 @@ async def redirect_to_original(codigo: str):
     
     # Actualizar el documento en MongoDB
     await urls_collection.update_one({"codigo_corto": codigo}, {"$set": url_document})
+    
+    # Realizar la redirección HTTP
+    return RedirectResponse(url=url_document["url_original"])
+
+@app.get("/{codigo}")
+async def redirect_to_original(codigo: str):
+    # Buscar el código en MongoDB
+    url_document = await urls_collection.find_one({"codigo_corto": codigo})
+    
+    if not url_document:
+        raise HTTPException(status_code=404, detail="URL no encontrada")
+    
+    # Incrementar el contador de clics
+    url_document["clics"] += 1
+    
+    # Actualizar el documento en MongoDB
+    await urls_collection.update_one({"codigo_corto": codigo}, {"$set": url_document})
+    
+    # Capturar la IP de la solicitud
+    ip = request.client.host
+    
+    # Hacer una llamada a la API para obtener el país
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"http://ip-api.com/json/{ip}")
+        if response.status_code == 200:
+            data = response.json()
+            country = data.get("country")
+            if country:
+                # Guardar el país en el documento de MongoDB
+                url_document["pais"] = country
+                await urls_collection.update_one({"codigo_corto": codigo}, {"$set": url_document})
     
     # Realizar la redirección HTTP
     return RedirectResponse(url=url_document["url_original"])
